@@ -13,8 +13,6 @@ class NearNear(object):
     comp_cat=None - Name of categorical comparables column (str)
     comp_cont=None - Name of continuous comparables column (str)
     distance_rad_increment = 1
-
-
     '''
 
 
@@ -65,7 +63,9 @@ class NearNear(object):
         d_mask = d_miles_mat - distance_rad <= 0
 
         if self.comp_cat != None:
-            cat_mask = X_train[self.comp_cat] == X_test[self.comp_cat].reshape(1,len(np_cat)).T
+            train_cat = self.X_train[self.comp_cat].values
+            test_cat = X_test[self.comp_cat].values
+            cat_mask = train_cat == test_cat.reshape(1,len(test_cat)).T
             comparables_mask = d_mask & cat_mask
         else:
             comparables_mask = d_mask
@@ -105,7 +105,7 @@ def compute_distances(lat_train, lon_train, lat_test, lon_test):
     OUTPUT
     d_miles_mat (np.ndarray)
     '''
-    #convert to radians
+    # convert to radians
     lat_train = lat_train * np.pi / 180
     lon_train = lon_train * np.pi / 180
     lat_test  = lat_test  * np.pi / 180

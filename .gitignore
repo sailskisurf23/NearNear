@@ -106,5 +106,8 @@ venv.bak/
 # data folder
 data/
 
-# test nbs
-NearNear_testing.ipynb
+# old src
+src/old/
+
+# scratch
+scratch.ipynb

@@ -2,9 +2,6 @@ import pandas as pd
 import numpy as np
 #from sklearn.metrics import r2_score
 
-def hello():
-    print('Hey')
-
 class NearNear(object):
     '''
     This regression model averages 'comparable' items within an expanding
@@ -34,12 +31,8 @@ class NearNear(object):
         self.X_train = X_train
         self.y_train = y_train
 
-    def comparables_mask(self,func):
-        pass
-
-
     def predict(self, X_test):
-
+        # Grab Latitude and Longitude columns and compute distance matrix
         if self.lat == None:
             lat_train = self.X_train.iloc[:,0].values
             lat_test = X_test.iloc[:,0].valuse
@@ -52,35 +45,45 @@ class NearNear(object):
         else:
             lon_train = self.X_train[self.lon].values
             lon_test = X_test[self.lon].values
-
         d_miles_mat = compute_distances(lat_train, lon_train, lat_test, lon_test)
 
-        #TODO add comparables funcionality
-        #d_imprating_mat = np.abs(self.X_train['property_imprating'].values - X_test['property_imprating'].values.reshape(1,len(X_test)).T)
-        #d_locrating_mat = np.abs(self.X_train['property_locrating'].values - X_test['property_locrating'].values.reshape(1,len(X_test)).T)
-
+        # TODO add continuous comparables funcionality
+        # d_imprating_mat = np.abs(self.X_train['property_imprating'].values - X_test['property_imprating'].values.reshape(1,len(X_test)).T)
+        # d_locrating_mat = np.abs(self.X_train['property_locrating'].values - X_test['property_locrating'].values.reshape(1,len(X_test)).T)
+        #
         # filter out properties outside the specified radii
         # imprating_rad = self.imprating_rad # units of improvement rating
         # locrating_rad = self.locrating_rad # units of location rating
-
-        distance_rad = self.distance_rad # miles
-        distance_rad_increment = self.distance_rad_increment # miles
-
-        d_mask = d_miles_mat - distance_rad <= 0
+        #
         # imprating_mask = d_imprating_mat - imprating_rad <= 0
         # locrating_mask = d_locrating_mat - locrating_rad <= 0
         # comparables_mask = d_mask & imprating_mask & locrating_mask
 
-        estimates = [self.y_train.values[d_mask[i]] for i in range(len(X_test))]
-        estimates = [np.mean(estimate) if any(estimate) else 0 for estimate in estimates]
+        # Apply mask based on search radius and comparable criteria
+        distance_rad = self.distance_rad # miles
+        distance_rad_increment = self.distance_rad_increment # miles
+        d_mask = d_miles_mat - distance_rad <= 0
 
+        if self.comp_cat != None:
+            cat_mask = X_train[self.comp_cat] == X_test[self.comp_cat].reshape(1,len(np_cat)).T
+            comparables_mask = d_mask & cat_mask
+        else:
+            comparables_mask = d_mask
+
+        # select target values for comparables for each property and average
+        comparables = [self.y_train.values[comparables_mask[i]] for i in range(len(X_test))]
+        estimates = [np.mean(estimate) if any(estimate) else 0 for estimate in comparables]
+
+        # expand search radius for properties with no comparables in initial radius
         while not all(estimates) and (distance_rad < 3961):
-            # ^continue until all estimates made or the earth is scoured
             distance_rad += distance_rad_increment # miles
             d_mask = d_miles_mat - distance_rad <= 0
             estimate_mask = np.array([[estimate]*len(self.y_train) for estimate in estimates]) <= 0
-            #comparables_mask = d_mask & imprating_mask & locrating_mask & estimate_mask
-            estimates_new = [self.y_train.values[d_mask[i]] for i in range(len(X_test))]
+            if self.comp_cat != None:
+                comparables_mask = d_mask & cat_mask & estimate_mask
+            else:
+                comparables_mask = d_mask & estimate_mask
+            estimates_new = [self.y_train.values[comparables_mask[i]] for i in range(len(X_test))]
             estimates = [np.mean(estimate_new) if any(estimate_new) else estimate
                         for estimate_new, estimate
                         in zip(estimates_new, estimates)]
